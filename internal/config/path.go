@@ -10,6 +10,8 @@ import (
 type Path struct {
 	// Emby2Openlist Emby 的路径前缀映射到 Openlist 的路径前缀, 两个路径使用 : 符号隔开
 	Emby2Openlist []string `yaml:"emby2openlist"`
+	// FollowSymlink 是否在进行路径映射前解析本地软链接
+	FollowSymlink bool `yaml:"follow-symlink"`
 
 	// emby2OpenlistArr 根据 Emby2Openlist 转换成路径键值对数组
 	emby2OpenlistArr [][2]string

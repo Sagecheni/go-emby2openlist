@@ -1,9 +1,13 @@
 package path
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/AmbitiousJun/go-emby2openlist/v2/internal/config"
 	"github.com/AmbitiousJun/go-emby2openlist/v2/internal/service/openlist"
@@ -35,6 +39,16 @@ func Emby2Openlist(embyPath string) OpenlistPathRes {
 
 	embyPath = urls.TransferSlash(embyPath)
 	pathRoutes.WriteString("\n\n【Windows 反斜杠转换】 => " + embyPath)
+
+	if shouldResolveSymlink() {
+		resolvedPath, changed, err := resolveLocalSymlink(embyPath)
+		if err != nil {
+			logs.Warn("解析软链接失败, path: %s, err: %v", embyPath, err)
+		} else if changed {
+			embyPath = resolvedPath
+			pathRoutes.WriteString("\n\n【软链接解析】 => " + embyPath)
+		}
+	}
 
 	embyMount := config.C.Emby.MountPath
 	openlistFilePath := strings.TrimPrefix(embyPath, embyMount)
@@ -91,4 +105,33 @@ func SplitFromSecondSlash(str string) (string, error) {
 	}
 
 	return str[secondIdx+firstIdx+1:], nil
+}
+
+// shouldResolveSymlink 判断是否开启软链接解析
+func shouldResolveSymlink() bool {
+	return config.C != nil && config.C.Path != nil && config.C.Path.FollowSymlink
+}
+
+// resolveLocalSymlink 解析本地路径的软链接, 返回解析后的路径和标记
+func resolveLocalSymlink(p string) (string, bool, error) {
+	if strings.TrimSpace(p) == "" {
+		return p, false, nil
+	}
+
+	resolved, err := filepath.EvalSymlinks(p)
+	if err != nil {
+		switch {
+		case errors.Is(err, syscall.ELOOP):
+			return p, false, fmt.Errorf("检测到循环软链接: %w", err)
+		case errors.Is(err, fs.ErrNotExist):
+			return p, false, fmt.Errorf("软链接目标不存在: %w", err)
+		default:
+			return p, false, fmt.Errorf("解析软链接异常: %w", err)
+		}
+	}
+
+	if resolved == p {
+		return p, false, nil
+	}
+	return resolved, true, nil
 }

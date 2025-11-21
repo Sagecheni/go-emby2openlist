@@ -95,6 +95,8 @@ path:
   # emby 挂载路径和 openlist 真实路径之间的前缀映射
   # 冒号左边表示本地挂载路径, 冒号右边表示 openlist 的真实路径
   # 这个配置请再三确认配置正确, 可以减少很多不必要的网络请求
+  # 当路径中存在软链接并希望解析真实位置时, 请启用 follow-symlink
+  follow-symlink: false
   emby2openlist: 
     - /movie:/电影
     - /music:/音乐
