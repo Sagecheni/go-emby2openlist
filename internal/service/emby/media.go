@@ -263,14 +263,13 @@ func addSubtitles2MediaStreams(source *jsons.Item, subtitleList []openlist.Trans
 		return
 	}
 
-	// 2 去除原始的字幕信息
-	mediaStreams = mediaStreams.Filter(func(val *jsons.Item) bool {
-		return val != nil && val.Attr("Type").Val() != "Subtitle"
-	})
-	source.Put("MediaStreams", mediaStreams)
+	// 2 保留原始字幕，只添加新的转码字幕
+	// 注意：不要删除原始字幕，因为直接播放时需要这些字幕
+	// 只有转码播放时才会使用新添加的字幕
 
 	// 3 生成 MediaStream
 	itemId, _ := source.Attr("ItemId").String()
+	// 计算当前所有流的数量（包括视频、音频、原始字幕）
 	curMediaStreamsSize := mediaStreams.Len()
 	fakeId := randoms.RandomHex(32)
 	for index, sub := range subtitleList {
